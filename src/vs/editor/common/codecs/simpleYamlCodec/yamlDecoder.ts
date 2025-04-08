@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../../base/common/assert.js';
+import { PartialYamlObject } from './parsers/yamlObject.js';
+import { PartialYamlString } from './parsers/yamlString.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { assertDefined } from '../../../../base/common/types.js';
 import { ReadableStream } from '../../../../base/common/stream.js';
 import { BaseDecoder } from '../../../../base/common/codecs/baseDecoder.js';
-import { PartialYamlObject, PartialYamlString } from './parsers/yamlRecord.js';
 import { SimpleDecoder, TSimpleDecoderToken } from '../simpleCodec/simpleDecoder.js';
 import { Dash, DoubleQuote, LeftAngleBracket, LeftParenthesis, Quote, RightAngleBracket, RightParenthesis, Slash, Space, Word } from '../simpleCodec/tokens/index.js';
 
@@ -66,10 +66,9 @@ export class YamlDecoder extends BaseDecoder<TYamlToken, TSimpleDecoderToken> {
 				if ((nextParser instanceof PartialYamlObject) || (nextParser instanceof PartialYamlString)) {
 					this.current = nextParser;
 
-					assert(
-						wasTokenConsumed === true,
-						'Token must have been consumed.',
-					);
+					if (wasTokenConsumed === false) {
+						this._onData.fire(token);
+					}
 
 					return;
 				}
@@ -80,10 +79,7 @@ export class YamlDecoder extends BaseDecoder<TYamlToken, TSimpleDecoderToken> {
 				return;
 			}
 
-			// TODO: @legomushroom
-			for (const accumulatedToken of this.current.tokens) {
-				this._onData.fire(accumulatedToken);
-			}
+			this.reEmitCurrentTokens();
 
 			if (wasTokenConsumed === false) {
 				this._onData.fire(token);

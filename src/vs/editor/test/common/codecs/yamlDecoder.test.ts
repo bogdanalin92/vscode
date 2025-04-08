@@ -12,10 +12,9 @@ import { Space } from '../../../common/codecs/simpleCodec/tokens/space.js';
 import { Colon } from '../../../common/codecs/simpleCodec/tokens/colon.js';
 import { YamlDecoder } from '../../../common/codecs/simpleYamlCodec/yamlDecoder.js';
 import { YamlString } from '../../../common/codecs/simpleYamlCodec/tokens/yamlString.js';
-import { YamlObject } from '../../../common/codecs/simpleYamlCodec/tokens/yamlObject.js';
-import { YamlRecord } from '../../../common/codecs/simpleYamlCodec/parsers/yamlRecord.js';
 import { TSimpleDecoderToken } from '../../../common/codecs/simpleCodec/simpleDecoder.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
+import { YamlObject, YamlRecord } from '../../../common/codecs/simpleYamlCodec/tokens/yamlObject.js';
 
 /**
  * TODO: @legomushroom
@@ -60,6 +59,41 @@ suite('SimpleYamlDecoder', () => {
 	});
 
 	suite('object', () => {
+		// suite('string values', () => {
+		// 	test('produces expected tokens', async () => {
+		// 		const test = disposables.add(
+		// 			new TestYamlDecoder(),
+		// 		);
+
+		// 		await test.run(
+		// 			[
+		// 				'just: "write some yaml ',
+		// 				'just yaml',
+		// 				' and not a bit of JSON"'
+		// 			],
+		// 			[
+		// 				new YamlObject(
+		// 					[
+		// 						YamlRecord.fromTokens(
+		// 							YamlString.fromTokens([
+		// 								new Word(new Range(1, 1, 1, 1 + 4), 'just'),
+		// 							]),
+		// 							[
+		// 								new Colon(new Range(1, 5, 1, 6)),
+		// 								new Space(new Range(1, 6, 1, 7)),
+		// 							],
+		// 							YamlString.fromTokens([
+		// 								new Word(new Range(1, 7, 1, 7 + 15), '"write some yaml \n just yaml and not a bit of JSON"'),
+		// 								new Space(new Range(1, 22, 1, 23)),
+		// 							]),
+		// 						),
+		// 					],
+		// 				),
+		// 			],
+		// 		);
+		// 	});
+		// });
+
 		test('produces expected tokens', async () => {
 			const test = disposables.add(
 				new TestYamlDecoder(),
@@ -68,13 +102,13 @@ suite('SimpleYamlDecoder', () => {
 			await test.run(
 				[
 					'just: write some yaml ',
-					// 'just write: some yaml',
+					'write some: just yaml',
 					// 'right here: or there',
 				],
 				[
-					// first line
 					new YamlObject(
 						[
+							// first line
 							YamlRecord.fromTokens(
 								YamlString.fromTokens([
 									new Word(new Range(1, 1, 1, 1 + 4), 'just'),
@@ -86,6 +120,20 @@ suite('SimpleYamlDecoder', () => {
 								YamlString.fromTokens([
 									new Word(new Range(1, 7, 1, 7 + 15), 'write some yaml '),
 									new Space(new Range(1, 22, 1, 23)),
+								]),
+							),
+							// second line
+							YamlRecord.fromTokens(
+								YamlString.fromTokens([
+									new Word(new Range(2, 1, 2, 1 + 10), 'write some'),
+								]),
+								[
+									new Colon(new Range(2, 11, 2, 12)),
+									new Space(new Range(2, 12, 2, 13)),
+								],
+								YamlString.fromTokens([
+									new Word(new Range(2, 13, 2, 13 + 9), 'just yaml'),
+									new Space(new Range(2, 22, 2, 23)),
 								]),
 							),
 						],
