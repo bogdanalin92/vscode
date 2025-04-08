@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { BaseToken } from '../../baseToken.js';
 import { SimpleToken } from './simpleToken.js';
 
 /**
@@ -20,6 +21,13 @@ export class Quote extends SimpleToken {
 	 */
 	public override get text() {
 		return Quote.symbol;
+	}
+
+	/**
+	 * TODO: @legomushroom
+	 */
+	public sameType(other: BaseToken): other is Quote {
+		return (other instanceof this.constructor);
 	}
 
 	/**
