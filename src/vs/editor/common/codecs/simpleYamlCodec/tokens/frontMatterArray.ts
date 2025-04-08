@@ -22,7 +22,7 @@ export class FrontMatterArray extends FrontMatterValueToken {
 		// TODO: @legomushroom - add `Comma`?
 		public readonly tokens: readonly [
 			LeftBracket,
-			...TFrontMatterValue[],
+			...FrontMatterValueToken[],
 			RightBracket,
 		],
 	) {

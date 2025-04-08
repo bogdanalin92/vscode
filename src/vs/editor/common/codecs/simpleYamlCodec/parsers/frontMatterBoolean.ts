@@ -6,7 +6,7 @@
 import { NewLine } from '../../linesCodec/tokens/newLine.js';
 import { assert } from '../../../../../base/common/assert.js';
 import { assertDefined } from '../../../../../base/common/types.js';
-import { Space, Tab, Word } from '../../simpleCodec/tokens/index.js';
+import { FormFeed, Space, Tab, VerticalTab, Word } from '../../simpleCodec/tokens/index.js';
 import { FrontMatterBoolean } from '../tokens/frontMatterBoolean.js';
 import { TSimpleDecoderToken } from '../../simpleCodec/simpleDecoder.js';
 import { CarriageReturn } from '../../linesCodec/tokens/carriageReturn.js';
@@ -16,13 +16,14 @@ import { assertNotConsumed, ParserBase, TAcceptTokenResult } from '../../simpleC
  * TODO: @legomushroom
  */
 // TODO: @legomushroom - any other tokens allowed?
-const ALLOWED_TOKENS = [
-	Space, Tab, CarriageReturn,
+const EMPTY_TOKENS = [
+	Space, Tab, CarriageReturn, NewLine, VerticalTab, FormFeed,
 ];
 
 /**
  * TODO: @legomushroom
  */
+// TODO: @legomushroom - remove
 export class PartialFrontMatterBoolean extends ParserBase<TSimpleDecoderToken, PartialFrontMatterBoolean | FrontMatterBoolean> {
 	/**
 	 * TODO: @legomushroom - throws
@@ -41,28 +42,17 @@ export class PartialFrontMatterBoolean extends ParserBase<TSimpleDecoderToken, P
 
 	@assertNotConsumed
 	public accept(token: TSimpleDecoderToken): TAcceptTokenResult<PartialFrontMatterBoolean | FrontMatterBoolean> {
-		for (const AllowedToken of ALLOWED_TOKENS) {
-			if (token instanceof AllowedToken) {
-				this.currentTokens.push(token);
+		// the initial boolean word can be followed only by an "empty" token
+		for (const EmptyToken of EMPTY_TOKENS) {
+			if (token instanceof EmptyToken) {
+				this.isConsumed = true;
 
 				return {
 					result: 'success',
-					nextParser: this,
-					wasTokenConsumed: true,
+					nextParser: this.asBooleanToken(),
+					wasTokenConsumed: false,
 				};
 			}
-		}
-
-		// new line terminates the parsing process
-		if (token instanceof NewLine) {
-			this.currentTokens.push(token);
-
-			this.isConsumed = true;
-			return {
-				result: 'success',
-				nextParser: this.asBooleanToken(),
-				wasTokenConsumed: true,
-			};
 		}
 
 		return {

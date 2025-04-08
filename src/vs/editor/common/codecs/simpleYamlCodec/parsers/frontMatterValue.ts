@@ -5,11 +5,24 @@
 
 import { PartialFrontMatterArray } from './frontMatterArray.js';
 import { PartialFrontMatterString } from './frontMatterString.js';
-import { PartialFrontMatterBoolean } from './frontMatterBoolean.js';
+import { FrontMatterBoolean } from '../tokens/frontMatterBoolean.js';
 import { FrontMatterValueToken } from '../tokens/frontMatterToken.js';
 import { TSimpleDecoderToken } from '../../simpleCodec/simpleDecoder.js';
-import { Word, Space, Quote, DoubleQuote, LeftBracket } from '../../simpleCodec/tokens/index.js';
+import { Word, Quote, DoubleQuote, LeftBracket } from '../../simpleCodec/tokens/index.js';
 import { assertNotConsumed, ParserBase, TAcceptTokenResult } from '../../simpleCodec/parserBase.js';
+import { BaseToken } from '../../baseToken.js';
+
+// /**
+//  * TODO: @legomushroom
+//  */
+// export const VALUE_START_TOKENS = [
+// 	Word, Quote, DoubleQuote, LeftBracket,
+// ];
+
+/**
+ * TODO: @legomushroom
+ */
+export type TValueStartToken = Word | Quote | DoubleQuote | LeftBracket;
 
 /**
  * TODO: @legomushroom
@@ -18,7 +31,7 @@ export class PartialFrontMatterValue extends ParserBase<TSimpleDecoderToken, Par
 	/**
 	 * TODO: @legomushroom
 	 */
-	private currentValueParser?: PartialFrontMatterString | PartialFrontMatterBoolean | PartialFrontMatterArray;
+	private currentValueParser?: PartialFrontMatterString | PartialFrontMatterArray;
 
 	@assertNotConsumed
 	public accept(token: TSimpleDecoderToken): TAcceptTokenResult<PartialFrontMatterValue | FrontMatterValueToken> {
@@ -52,16 +65,6 @@ export class PartialFrontMatterValue extends ParserBase<TSimpleDecoderToken, Par
 			};
 		}
 
-
-		// iterate until first non-space character
-		if (token instanceof Space) {
-			return {
-				result: 'success',
-				nextParser: this,
-				wasTokenConsumed: true,
-			};
-		}
-
 		// if the first token represents a `quote` character, try to parse a string value
 		if ((token instanceof Quote) || (token instanceof DoubleQuote)) {
 			this.currentValueParser = new PartialFrontMatterString(token);
@@ -87,11 +90,9 @@ export class PartialFrontMatterValue extends ParserBase<TSimpleDecoderToken, Par
 		// if the first token represents a `word` try to parse a boolean
 		if (token instanceof Word) {
 			try {
-				this.currentValueParser = new PartialFrontMatterBoolean(token);
-
 				return {
 					result: 'success',
-					nextParser: this,
+					nextParser: FrontMatterBoolean.fromToken(token),
 					wasTokenConsumed: true,
 				};
 			} catch (_error) {
@@ -100,8 +101,6 @@ export class PartialFrontMatterValue extends ParserBase<TSimpleDecoderToken, Par
 					wasTokenConsumed: false,
 				};
 			}
-
-
 		}
 
 		// in all other cases fail due to unexpected value sequence
@@ -109,5 +108,30 @@ export class PartialFrontMatterValue extends ParserBase<TSimpleDecoderToken, Par
 			result: 'failure',
 			wasTokenConsumed: false,
 		};
+	}
+
+	/**
+	 * TODO: @legomushroom
+	 */
+	public static isValueStartToken(
+		token: BaseToken,
+	): token is TValueStartToken {
+		if (token instanceof Word) {
+			return true;
+		}
+
+		if (token instanceof Quote) {
+			return true;
+		}
+
+		if (token instanceof DoubleQuote) {
+			return true;
+		}
+
+		if (token instanceof LeftBracket) {
+			return true;
+		}
+
+		return false;
 	}
 }
