@@ -4,15 +4,27 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { YamlToken } from './yamlToken.js';
+import { BaseToken } from '../../baseToken.js';
+import { YamlRecord } from '../parsers/yamlRecord.js';
 
 /**
  * TODO: @legomushroom
  */
 export class YamlObject extends YamlToken {
-	public override get text(): string {
-		throw new Error('TODO: @legomushroom');
+	constructor(
+		public readonly records: readonly YamlRecord[],
+	) {
+		const firstRecord = records[0];
+		const lastRecord = records[records.length - 1];
+
+		super(BaseToken.fullRange([firstRecord, lastRecord]));
 	}
+
+	public override get text(): string {
+		return BaseToken.render(this.records);
+	}
+
 	public override toString(): string {
-		throw new Error('TODO: @legomushroom');
+		return `yaml-obj(${this.shortText()}){${this.range}}`;
 	}
 }

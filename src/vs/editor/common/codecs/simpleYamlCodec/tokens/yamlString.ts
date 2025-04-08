@@ -41,6 +41,6 @@ export class YamlString extends YamlToken {
 	 * String representation of the token.
 	 */
 	public override toString(): string {
-		return `yaml-str(${this.shortText}){this.range}`;
+		return `yaml-str(${this.shortText()}){this.range}`;
 	}
 }

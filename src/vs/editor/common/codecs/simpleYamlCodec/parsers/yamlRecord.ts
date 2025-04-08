@@ -11,6 +11,7 @@ import { YamlString } from '../tokens/yamlString.js';
 import { TSimpleDecoderToken } from '../../simpleCodec/simpleDecoder.js';
 import { assertNotConsumed, ParserBase, TAcceptTokenResult } from '../../simpleCodec/parserBase.js';
 import { Colon, Word, Dash, Space, Quote, DoubleQuote, Slash, LeftParenthesis, RightParenthesis, LeftAngleBracket, RightAngleBracket } from '../../simpleCodec/tokens/index.js';
+import { assertNever } from '../../../../../base/common/assert.js';
 
 /**
  * TODO: @legomushroom
@@ -51,7 +52,9 @@ export class PartialYamlString extends ParserBase<TNameToken, PartialYamlString 
 		const previousToken = this.currentTokens[this.currentTokens.length - 1];
 
 		if ((token instanceof Space) && (previousToken instanceof Colon)) {
-			const yamlString = YamlString.fromTokens(this.currentTokens);
+			const yamlString = YamlString.fromTokens([
+				...this.currentTokens.slice(0, this.currentTokens.length - 1),
+			]);
 
 			this.isConsumed = true;
 			return {
@@ -68,8 +71,18 @@ export class PartialYamlString extends ParserBase<TNameToken, PartialYamlString 
 			};
 		}
 
-		for (const validToken of VALID_NAME_TOKENS) {
-			if (token instanceof validToken) {
+		if (token instanceof Colon) {
+			this.currentTokens.push(token);
+
+			return {
+				result: 'success',
+				nextParser: this,
+				wasTokenConsumed: true,
+			};
+		}
+
+		for (const ValidToken of VALID_NAME_TOKENS) {
+			if (token instanceof ValidToken) {
 				this.currentTokens.push(token);
 
 				return {
@@ -87,8 +100,13 @@ export class PartialYamlString extends ParserBase<TNameToken, PartialYamlString 
 		};
 	}
 
-	public onStreamEnd(): TAcceptTokenResult<PartialYamlString | PartialYamlObject | YamlString> {
+	/**
+	 * TODO: @legomushroom
+	 */
+	public asYamlString(): YamlString {
+		this.isConsumed = true;
 
+		return YamlString.fromTokens(this.currentTokens);
 	}
 }
 
@@ -139,12 +157,25 @@ export class YamlRecord extends YamlToken {
 		super(range);
 	}
 
+	public static fromTokens(
+		name: YamlString,
+		delimiter: readonly [Colon, Space],
+		value: YamlString | YamlObject,
+	): YamlRecord {
+		return new YamlRecord(
+			BaseToken.fullRange([name, value]),
+			name,
+			delimiter,
+			value,
+		);
+	}
 
 	public override get text(): string {
-		throw new Error('TODO: @legomushroom');
+		return BaseToken.render([this.name, ...this.delimiter, this.value]);
 	}
+
 	public override toString(): string {
-		throw new Error('TODO: @legomushroom');
+		return `yaml-record(${this.shortText()}){${this.range}}`;
 	}
 }
 
@@ -162,7 +193,7 @@ export class PartialYamlRecord extends ParserBase<TSimpleDecoderToken, PartialYa
 		private readonly recordName: YamlString,
 		private readonly delimiter: readonly [Colon, Space],
 	) {
-		super([recordName, ...delimiter]);
+		super([]);
 
 		this.valueParser = new PartialYamlString(this.indentation, null);
 	}
@@ -201,6 +232,37 @@ export class PartialYamlRecord extends ParserBase<TSimpleDecoderToken, PartialYa
 			wasTokenConsumed,
 		};
 	}
+
+	public asYamlRecord(): YamlRecord {
+		this.isConsumed = true;
+
+		if (this.valueParser instanceof PartialYamlString) {
+			const recordValue = this.valueParser.asYamlString();
+
+			return new YamlRecord(
+				BaseToken.fullRange([this.recordName, recordValue]),
+				this.recordName,
+				this.delimiter,
+				recordValue,
+			);
+		}
+
+		if (this.valueParser instanceof PartialYamlObject) {
+			const recordValue = this.valueParser.asYamlObject();
+
+			return new YamlRecord(
+				BaseToken.fullRange([this.recordName, recordValue]),
+				this.recordName,
+				this.delimiter,
+				recordValue,
+			);
+		}
+
+		assertNever(
+			this.valueParser,
+			`Unexpected value parser '${this.valueParser}'.`,
+		);
+	}
 }
 
 
@@ -209,7 +271,7 @@ export class PartialYamlRecord extends ParserBase<TSimpleDecoderToken, PartialYa
  */
 export class PartialYamlObject extends ParserBase<YamlRecord, PartialYamlObject | YamlObject> {
 	constructor(
-		private readonly indentation: readonly Space[],
+		_indentation: readonly Space[],
 		private currentRecord: PartialYamlRecord,
 	) {
 		super([]);
@@ -234,7 +296,6 @@ export class PartialYamlObject extends ParserBase<YamlRecord, PartialYamlObject 
 			}
 
 			this.currentRecord = acceptResult.nextParser;
-
 			return {
 				result: 'success',
 				nextParser: this,
@@ -246,5 +307,22 @@ export class PartialYamlObject extends ParserBase<YamlRecord, PartialYamlObject 
 			result: 'failure',
 			wasTokenConsumed,
 		};
+	}
+
+	/**
+	 * TODO: @legomushroom
+	 */
+	public asYamlObject(): YamlObject {
+		this.isConsumed = true;
+
+		if (this.currentRecord instanceof PartialYamlRecord) {
+			this.currentTokens.push(
+				this.currentRecord.asYamlRecord(),
+			);
+
+			// TODO: @legomushroom - delete the `this.currentRecord` reference?
+		}
+
+		return new YamlObject(this.currentTokens);
 	}
 }
