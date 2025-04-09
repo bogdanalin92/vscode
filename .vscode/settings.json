@@ -178,5 +178,9 @@
 		"*": "error",
 		"ts": "warning",
 		"eslint": "warning"
-	}
+	},
+	"omnisharp.dotnetPath": "/root/.dotnet/dotnet",
+    "terminal.integrated.env.linux": {
+        "PATH": "${env:PATH}:/root/.dotnet"
+    }
 }
